@@ -10,20 +10,33 @@ import (
 
 func TestBagOfMapKeys(t *testing.T) {
 	t.Run("Len", func(t *testing.T) {
-		m := map[string]int{"a": 1, "b": 2, "c": 3}
-		var bag views.Bag[string] = views.BagOfMapKeys[string, int]{M: m}
-		if got := bag.Len(); got != 3 {
-			t.Errorf("Len() = %d, want 3", got)
+		tests := []struct {
+			name string
+			bag  views.Bag[string]
+			want int
+		}{
+			{
+				name: "non-empty map",
+				bag:  views.BagOfMapKeys[string, int]{M: map[string]int{"a": 1, "b": 2, "c": 3}},
+				want: 3,
+			},
+			{
+				name: "empty map",
+				bag:  views.BagOfMapKeys[string, int]{M: map[string]int{}},
+				want: 0,
+			},
+			{
+				name: "nil map",
+				bag:  views.BagOfMapKeys[string, int]{},
+				want: 0,
+			},
 		}
-
-		emptyBag := views.BagOfMapKeys[string, int]{M: map[string]int{}}
-		if got := emptyBag.Len(); got != 0 {
-			t.Errorf("Len() = %d, want 0", got)
-		}
-
-		var nilBag views.BagOfMapKeys[string, int]
-		if got := nilBag.Len(); got != 0 {
-			t.Errorf("Len() = %d, want 0 for nil map", got)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if got := tt.bag.Len(); got != tt.want {
+					t.Errorf("Len() = %d, want %d", got, tt.want)
+				}
+			})
 		}
 	})
 
