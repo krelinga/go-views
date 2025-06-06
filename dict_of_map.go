@@ -22,7 +22,7 @@ func (d DictOfMap[K, V]) Values() iter.Seq[V] {
 }
 
 // Keys returns a sequence of keys in the map.
-func (d DictOfMap[K, V]) Keys(key K) iter.Seq[K] {
+func (d DictOfMap[K, V]) Keys() iter.Seq[K] {
 	return maps.Keys(d.M)
 }
 
