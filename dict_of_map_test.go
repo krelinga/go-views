@@ -74,11 +74,17 @@ func TestDictOfMap(t *testing.T) {
 				t.Errorf("Values() = %v, want %v", gotValues, tt.wantValues)
 			}
 			for _, wantEntry := range tt.wantEntries {
+				if ok := tt.dict.Has(wantEntry.Key); !ok {
+					t.Errorf("Has(%q) = false, want true", wantEntry.Key)
+				}
 				if _, ok := tt.dict.Get(wantEntry.Key); !ok {
 					t.Errorf("Get(%q) = false, want true", wantEntry.Key)
 				}
 			}
 			for _, missingK := range tt.missingKeys {
+				if ok := tt.dict.Has(missingK); ok {
+					t.Errorf("Has(%q) = true, want false", missingK)
+				}
 				if _, ok := tt.dict.Get(missingK); ok {
 					t.Errorf("Get(%q) = true, want false", missingK)
 				}
