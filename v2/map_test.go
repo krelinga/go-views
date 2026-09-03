@@ -64,20 +64,20 @@ func TestMap(t *testing.T) {
 			missing: []string{"z"},
 		},
 		{
-			name:    "NewMapVals non-empty",
-			m:       views.NewMapVals(map[string]int{"a": 1, "b": 2}, strconv.Itoa),
+			name:    "NewMapValues non-empty",
+			m:       views.NewMapValues(map[string]int{"a": 1, "b": 2}, strconv.Itoa),
 			want:    map[string]string{"a": "1", "b": "2"},
 			missing: []string{"z"},
 		},
 		{
-			name:    "NewMapVals empty",
-			m:       views.NewMapVals(map[string]int{}, strconv.Itoa),
+			name:    "NewMapValues empty",
+			m:       views.NewMapValues(map[string]int{}, strconv.Itoa),
 			want:    map[string]string{},
 			missing: []string{"a"},
 		},
 		{
-			name:    "NewMapVals named map type",
-			m:       views.NewMapVals(namedAges{"a": 1}, strconv.Itoa),
+			name:    "NewMapValues named map type",
+			m:       views.NewMapValues(namedAges{"a": 1}, strconv.Itoa),
 			want:    map[string]string{"a": "1"},
 			missing: []string{"z"},
 		},
@@ -210,19 +210,19 @@ func TestMapConvertsLazily(t *testing.T) {
 		// newMap builds a three-entry view that calls count once per conversion.
 		newMap func(count func()) views.Map[string, string]
 		// presentKey and missingKey are exposed keys, which differ by
-		// implementation: NewMapVals passes backing keys through, while
+		// implementation: NewMapValues passes backing keys through, while
 		// NewMapKeyValues converts them.
 		presentKey string
 		missingKey string
 		// keysConverts records whether Keys() has to convert, which differs by
-		// implementation: NewMapVals passes keys through untouched, while
+		// implementation: NewMapValues passes keys through untouched, while
 		// NewMapKeyValues must run the pair-wise converter to produce one.
 		keysConverts bool
 	}{
 		{
-			name: "NewMapVals",
+			name: "NewMapValues",
 			newMap: func(count func()) views.Map[string, string] {
-				return views.NewMapVals(map[string]int{"a": 1, "b": 2, "c": 3}, func(i int) string {
+				return views.NewMapValues(map[string]int{"a": 1, "b": 2, "c": 3}, func(i int) string {
 					count()
 					return strconv.Itoa(i)
 				})
@@ -352,10 +352,10 @@ func TestMapNilInput(t *testing.T) {
 		{name: "NewMap empty", m: views.NewMap(map[string]string{}), wantLen: 0},
 		{name: "NewMap empty named type", m: views.NewMap(namedLabels{}), wantLen: 0},
 		{name: "NewMap non-empty", m: views.NewMap(map[string]string{"a": "1"}), wantLen: 1},
-		{name: "NewMapVals nil", m: views.NewMapVals(map[string]int(nil), strconv.Itoa), wantNil: true},
-		{name: "NewMapVals nil named type", m: views.NewMapVals(namedAges(nil), strconv.Itoa), wantNil: true},
-		{name: "NewMapVals empty", m: views.NewMapVals(map[string]int{}, strconv.Itoa), wantLen: 0},
-		{name: "NewMapVals non-empty", m: views.NewMapVals(map[string]int{"a": 1}, strconv.Itoa), wantLen: 1},
+		{name: "NewMapValues nil", m: views.NewMapValues(map[string]int(nil), strconv.Itoa), wantNil: true},
+		{name: "NewMapValues nil named type", m: views.NewMapValues(namedAges(nil), strconv.Itoa), wantNil: true},
+		{name: "NewMapValues empty", m: views.NewMapValues(map[string]int{}, strconv.Itoa), wantLen: 0},
+		{name: "NewMapValues non-empty", m: views.NewMapValues(map[string]int{"a": 1}, strconv.Itoa), wantLen: 1},
 		{name: "NewMapKeyValues nil", m: views.NewMapKeyValues(map[int]string(nil), kvConv, kvUnconv), wantNil: true},
 		{name: "NewMapKeyValues nil named type", m: views.NewMapKeyValues(namedPairs(nil), kvConv, kvUnconv), wantNil: true},
 		{name: "NewMapKeyValues empty", m: views.NewMapKeyValues(map[int]string{}, kvConv, kvUnconv), wantLen: 0},

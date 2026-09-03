@@ -44,18 +44,18 @@ func TestSlice(t *testing.T) {
 			want:  []string{"a", "b"},
 		},
 		{
-			name:  "NewSliceVals non-empty",
-			slice: views.NewSliceVals([]int{1, 2, 3}, strconv.Itoa),
+			name:  "NewSliceValues non-empty",
+			slice: views.NewSliceValues([]int{1, 2, 3}, strconv.Itoa),
 			want:  []string{"1", "2", "3"},
 		},
 		{
-			name:  "NewSliceVals empty",
-			slice: views.NewSliceVals([]int{}, strconv.Itoa),
+			name:  "NewSliceValues empty",
+			slice: views.NewSliceValues([]int{}, strconv.Itoa),
 			want:  nil,
 		},
 		{
-			name:  "NewSliceVals named slice type",
-			slice: views.NewSliceVals(namedInts{1, 2}, strconv.Itoa),
+			name:  "NewSliceValues named slice type",
+			slice: views.NewSliceValues(namedInts{1, 2}, strconv.Itoa),
 			want:  []string{"1", "2"},
 		},
 	}
@@ -105,8 +105,8 @@ func TestSliceAtOutOfRange(t *testing.T) {
 	}{
 		{"NewSlice negative", views.NewSlice([]string{"a"}), -1},
 		{"NewSlice past end", views.NewSlice([]string{"a"}), 1},
-		{"NewSliceVals negative", views.NewSliceVals([]int{1}, strconv.Itoa), -1},
-		{"NewSliceVals past end", views.NewSliceVals([]int{1}, strconv.Itoa), 1},
+		{"NewSliceValues negative", views.NewSliceValues([]int{1}, strconv.Itoa), -1},
+		{"NewSliceValues past end", views.NewSliceValues([]int{1}, strconv.Itoa), 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -120,16 +120,16 @@ func TestSliceAtOutOfRange(t *testing.T) {
 	}
 }
 
-// TestNewSliceValsConvertsLazily pins the documented cost model: nothing is
+// TestNewSliceValuesConvertsLazily pins the documented cost model: nothing is
 // converted up front, each read converts exactly once, and abandoning an
 // iteration converts nothing further.
-func TestNewSliceValsConvertsLazily(t *testing.T) {
+func TestNewSliceValuesConvertsLazily(t *testing.T) {
 	var calls int
 	count := func(i int) string {
 		calls++
 		return strconv.Itoa(i)
 	}
-	slice := views.NewSliceVals([]int{1, 2, 3}, count)
+	slice := views.NewSliceValues([]int{1, 2, 3}, count)
 
 	if calls != 0 {
 		t.Errorf("construction made %d conversions, want 0", calls)
@@ -217,10 +217,10 @@ func TestSliceNilInput(t *testing.T) {
 		{name: "NewSlice empty", slice: views.NewSlice([]string{}), wantLen: 0},
 		{name: "NewSlice empty named type", slice: views.NewSlice(namedStrings{}), wantLen: 0},
 		{name: "NewSlice non-empty", slice: views.NewSlice([]string{"a"}), wantLen: 1},
-		{name: "NewSliceVals nil", slice: views.NewSliceVals([]int(nil), strconv.Itoa), wantNil: true},
-		{name: "NewSliceVals nil named type", slice: views.NewSliceVals(namedInts(nil), strconv.Itoa), wantNil: true},
-		{name: "NewSliceVals empty", slice: views.NewSliceVals([]int{}, strconv.Itoa), wantLen: 0},
-		{name: "NewSliceVals non-empty", slice: views.NewSliceVals([]int{1}, strconv.Itoa), wantLen: 1},
+		{name: "NewSliceValues nil", slice: views.NewSliceValues([]int(nil), strconv.Itoa), wantNil: true},
+		{name: "NewSliceValues nil named type", slice: views.NewSliceValues(namedInts(nil), strconv.Itoa), wantNil: true},
+		{name: "NewSliceValues empty", slice: views.NewSliceValues([]int{}, strconv.Itoa), wantLen: 0},
+		{name: "NewSliceValues non-empty", slice: views.NewSliceValues([]int{1}, strconv.Itoa), wantLen: 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -64,7 +64,7 @@ func (v sliceView[T]) Values() iter.Seq[T] {
 	return slices.Values(v.s)
 }
 
-// NewSliceVals returns a read-only [Slice] view of s whose elements are
+// NewSliceValues returns a read-only [Slice] view of s whose elements are
 // converted by conv.
 //
 // S may be []F or any type whose underlying type is []F.
@@ -77,32 +77,32 @@ func (v sliceView[T]) Values() iter.Seq[T] {
 // conv is applied lazily, once per element read, so a value read twice is
 // converted twice and elements that are never read are never converted. Like
 // [NewSlice], the view aliases s.
-func NewSliceVals[S ~[]F, F, T any](s S, conv func(F) T) Slice[T] {
+func NewSliceValues[S ~[]F, F, T any](s S, conv func(F) T) Slice[T] {
 	if s == nil {
 		return nil
 	}
-	return sliceValsView[F, T]{s: s, conv: conv}
+	return sliceValuesView[F, T]{s: s, conv: conv}
 }
 
-// sliceValsView is the [Slice] implementation returned by [NewSliceVals]. It
-// holds the conversion function alongside the backing slice and applies it at
-// each read.
-type sliceValsView[F, T any] struct {
+// sliceValuesView is the [Slice] implementation returned by
+// [NewSliceValues]. It holds the conversion function alongside the backing
+// slice and applies it at each read.
+type sliceValuesView[F, T any] struct {
 	s    []F
 	conv func(F) T
 }
 
-func (sliceValsView[F, T]) sealedSlice() {}
+func (sliceValuesView[F, T]) sealedSlice() {}
 
-func (v sliceValsView[F, T]) Len() int {
+func (v sliceValuesView[F, T]) Len() int {
 	return len(v.s)
 }
 
-func (v sliceValsView[F, T]) At(index int) T {
+func (v sliceValuesView[F, T]) At(index int) T {
 	return v.conv(v.s[index])
 }
 
-func (v sliceValsView[F, T]) All() iter.Seq2[int, T] {
+func (v sliceValuesView[F, T]) All() iter.Seq2[int, T] {
 	return func(yield func(int, T) bool) {
 		for i, e := range v.s {
 			if !yield(i, v.conv(e)) {
@@ -112,7 +112,7 @@ func (v sliceValsView[F, T]) All() iter.Seq2[int, T] {
 	}
 }
 
-func (v sliceValsView[F, T]) Values() iter.Seq[T] {
+func (v sliceValuesView[F, T]) Values() iter.Seq[T] {
 	return func(yield func(T) bool) {
 		for _, e := range v.s {
 			if !yield(v.conv(e)) {

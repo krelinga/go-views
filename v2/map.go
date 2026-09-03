@@ -70,8 +70,8 @@ func (v mapView[K, V]) All() iter.Seq2[K, V] {
 	return maps.All(v.m)
 }
 
-// NewMapVals returns a read-only [Map] view of m whose values are converted by
-// conv. Keys are exposed unchanged.
+// NewMapValues returns a read-only [Map] view of m whose values are converted
+// by conv. Keys are exposed unchanged.
 //
 // M may be map[K]F or any type whose underlying type is map[K]F.
 //
@@ -83,27 +83,28 @@ func (v mapView[K, V]) All() iter.Seq2[K, V] {
 // conv is applied lazily, once per value read, so a value read twice is
 // converted twice and entries that are never read are never converted. Like
 // [NewMap], the view aliases m.
-func NewMapVals[M ~map[K]F, K comparable, F, V any](m M, conv func(F) V) Map[K, V] {
+func NewMapValues[M ~map[K]F, K comparable, F, V any](m M, conv func(F) V) Map[K, V] {
 	if m == nil {
 		return nil
 	}
-	return mapValsView[K, F, V]{m: m, conv: conv}
+	return mapValuesView[K, F, V]{m: m, conv: conv}
 }
 
-// mapValsView is the [Map] implementation returned by [NewMapVals]. It holds the
-// conversion function alongside the backing map and applies it at each read.
-type mapValsView[K comparable, F, V any] struct {
+// mapValuesView is the [Map] implementation returned by [NewMapValues]. It
+// holds the conversion function alongside the backing map and applies it at
+// each read.
+type mapValuesView[K comparable, F, V any] struct {
 	m    map[K]F
 	conv func(F) V
 }
 
-func (mapValsView[K, F, V]) sealedMap() {}
+func (mapValuesView[K, F, V]) sealedMap() {}
 
-func (v mapValsView[K, F, V]) Len() int {
+func (v mapValuesView[K, F, V]) Len() int {
 	return len(v.m)
 }
 
-func (v mapValsView[K, F, V]) Get(key K) (V, bool) {
+func (v mapValuesView[K, F, V]) Get(key K) (V, bool) {
 	from, ok := v.m[key]
 	if !ok {
 		var zero V
@@ -112,11 +113,11 @@ func (v mapValsView[K, F, V]) Get(key K) (V, bool) {
 	return v.conv(from), true
 }
 
-func (v mapValsView[K, F, V]) Keys() iter.Seq[K] {
+func (v mapValuesView[K, F, V]) Keys() iter.Seq[K] {
 	return maps.Keys(v.m)
 }
 
-func (v mapValsView[K, F, V]) Values() iter.Seq[V] {
+func (v mapValuesView[K, F, V]) Values() iter.Seq[V] {
 	return func(yield func(V) bool) {
 		for _, from := range v.m {
 			if !yield(v.conv(from)) {
@@ -126,7 +127,7 @@ func (v mapValsView[K, F, V]) Values() iter.Seq[V] {
 	}
 }
 
-func (v mapValsView[K, F, V]) All() iter.Seq2[K, V] {
+func (v mapValuesView[K, F, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for key, from := range v.m {
 			if !yield(key, v.conv(from)) {
