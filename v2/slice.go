@@ -16,10 +16,18 @@ type Slice[T any] interface {
 //
 // S may be []T or any type whose underlying type is []T.
 //
+// A nil s yields a nil [Slice], so nil-ness round-trips rather than collapsing
+// into an empty view; an empty but non-nil s yields a non-nil view of length
+// zero. A nil view is a nil interface, so callers must nil-check the result
+// before calling methods on it.
+//
 // The view aliases s rather than copying it, so it prevents modification
 // through the view only; callers that retain s can still change the elements
 // the view exposes.
 func NewSlice[S ~[]T, T any](s S) Slice[T] {
+	if s == nil {
+		return nil
+	}
 	return sliceView[T]{s: s}
 }
 
@@ -49,10 +57,18 @@ func (v sliceView[T]) Values() iter.Seq[T] {
 //
 // S may be []F or any type whose underlying type is []F.
 //
+// A nil s yields a nil [Slice], so nil-ness round-trips rather than collapsing
+// into an empty view; an empty but non-nil s yields a non-nil view of length
+// zero. A nil view is a nil interface, so callers must nil-check the result
+// before calling methods on it.
+//
 // conv is applied lazily, once per element read, so a value read twice is
 // converted twice and elements that are never read are never converted. Like
 // [NewSlice], the view aliases s.
 func NewSliceVals[S ~[]F, F, T any](s S, conv func(F) T) Slice[T] {
+	if s == nil {
+		return nil
+	}
 	return sliceValsView[F, T]{s: s, conv: conv}
 }
 

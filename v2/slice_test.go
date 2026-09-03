@@ -39,11 +39,6 @@ func TestSlice(t *testing.T) {
 			want:  nil,
 		},
 		{
-			name:  "NewSlice nil backing",
-			slice: views.NewSlice([]string(nil)),
-			want:  nil,
-		},
-		{
 			name:  "NewSlice named slice type",
 			slice: views.NewSlice(namedStrings{"a", "b"}),
 			want:  []string{"a", "b"},
@@ -56,11 +51,6 @@ func TestSlice(t *testing.T) {
 		{
 			name:  "NewSliceVals empty",
 			slice: views.NewSliceVals([]int{}, strconv.Itoa),
-			want:  nil,
-		},
-		{
-			name:  "NewSliceVals nil backing",
-			slice: views.NewSliceVals([]int(nil), strconv.Itoa),
 			want:  nil,
 		},
 		{
@@ -115,10 +105,8 @@ func TestSliceAtOutOfRange(t *testing.T) {
 	}{
 		{"NewSlice negative", views.NewSlice([]string{"a"}), -1},
 		{"NewSlice past end", views.NewSlice([]string{"a"}), 1},
-		{"NewSlice nil backing", views.NewSlice([]string(nil)), 0},
 		{"NewSliceVals negative", views.NewSliceVals([]int{1}, strconv.Itoa), -1},
 		{"NewSliceVals past end", views.NewSliceVals([]int{1}, strconv.Itoa), 1},
-		{"NewSliceVals nil backing", views.NewSliceVals([]int(nil), strconv.Itoa), 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -210,5 +198,51 @@ func TestSliceAliasesBacking(t *testing.T) {
 	}
 	if got := slices.Collect(slice.Values()); !reflect.DeepEqual(got, []string{"changed", "b"}) {
 		t.Errorf("Values() = %v after backing write", got)
+	}
+}
+
+// TestSliceNilInput pins the nil round-trip: a nil backing slice yields a nil
+// Slice, while an empty but non-nil one yields a usable zero-length view. The
+// distinction is the point — it lets "no slice" survive the wrapping instead of
+// collapsing into "empty slice".
+func TestSliceNilInput(t *testing.T) {
+	tests := []struct {
+		name    string
+		slice   views.Slice[string]
+		wantNil bool
+		wantLen int
+	}{
+		{name: "NewSlice nil", slice: views.NewSlice([]string(nil)), wantNil: true},
+		{name: "NewSlice nil named type", slice: views.NewSlice(namedStrings(nil)), wantNil: true},
+		{name: "NewSlice empty", slice: views.NewSlice([]string{}), wantLen: 0},
+		{name: "NewSlice empty named type", slice: views.NewSlice(namedStrings{}), wantLen: 0},
+		{name: "NewSlice non-empty", slice: views.NewSlice([]string{"a"}), wantLen: 1},
+		{name: "NewSliceVals nil", slice: views.NewSliceVals([]int(nil), strconv.Itoa), wantNil: true},
+		{name: "NewSliceVals nil named type", slice: views.NewSliceVals(namedInts(nil), strconv.Itoa), wantNil: true},
+		{name: "NewSliceVals empty", slice: views.NewSliceVals([]int{}, strconv.Itoa), wantLen: 0},
+		{name: "NewSliceVals non-empty", slice: views.NewSliceVals([]int{1}, strconv.Itoa), wantLen: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.slice == nil; got != tt.wantNil {
+				t.Fatalf("slice == nil is %v, want %v", got, tt.wantNil)
+			}
+
+			// A nil view is a nil interface, so there is nothing further to
+			// check: every method call on it panics. That is the cost of the
+			// round-trip — callers must nil-check rather than treat the result
+			// as an empty collection.
+			if tt.wantNil {
+				return
+			}
+
+			// A non-nil view must be usable even when it holds nothing.
+			if got := tt.slice.Len(); got != tt.wantLen {
+				t.Errorf("Len() = %d, want %d", got, tt.wantLen)
+			}
+			if got := len(slices.Collect(tt.slice.Values())); got != tt.wantLen {
+				t.Errorf("Values() yielded %d values, want %d", got, tt.wantLen)
+			}
+		})
 	}
 }

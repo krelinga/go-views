@@ -15,6 +15,8 @@ type namedLabels map[string]string
 
 type namedAges map[string]int
 
+type namedPairs map[int]string
+
 // kvConv derives the exposed value from both the key and the value, which is
 // the capability a pair-wise converter has and two independent converters do
 // not.
@@ -56,12 +58,6 @@ func TestMap(t *testing.T) {
 			missing: []string{"a"},
 		},
 		{
-			name:    "NewMap nil backing",
-			m:       views.NewMap(map[string]string(nil)),
-			want:    map[string]string{},
-			missing: []string{"a"},
-		},
-		{
 			name:    "NewMap named map type",
 			m:       views.NewMap(namedLabels{"a": "1"}),
 			want:    map[string]string{"a": "1"},
@@ -80,12 +76,6 @@ func TestMap(t *testing.T) {
 			missing: []string{"a"},
 		},
 		{
-			name:    "NewMapVals nil backing",
-			m:       views.NewMapVals(map[string]int(nil), strconv.Itoa),
-			want:    map[string]string{},
-			missing: []string{"a"},
-		},
-		{
 			name:    "NewMapVals named map type",
 			m:       views.NewMapVals(namedAges{"a": 1}, strconv.Itoa),
 			want:    map[string]string{"a": "1"},
@@ -98,14 +88,14 @@ func TestMap(t *testing.T) {
 			missing: []string{"99", "not-a-number"},
 		},
 		{
-			name:    "NewMapKeyValues empty",
-			m:       views.NewMapKeyValues(map[int]string{}, kvConv, kvUnconv),
-			want:    map[string]string{},
-			missing: []string{"1", "not-a-number"},
+			name:    "NewMapKeyValues named map type",
+			m:       views.NewMapKeyValues(namedPairs{1: "one"}, kvConv, kvUnconv),
+			want:    map[string]string{"1": "1:one"},
+			missing: []string{"99", "not-a-number"},
 		},
 		{
-			name:    "NewMapKeyValues nil backing",
-			m:       views.NewMapKeyValues(map[int]string(nil), kvConv, kvUnconv),
+			name:    "NewMapKeyValues empty",
+			m:       views.NewMapKeyValues(map[int]string{}, kvConv, kvUnconv),
 			want:    map[string]string{},
 			missing: []string{"1", "not-a-number"},
 		},
@@ -343,5 +333,58 @@ func TestMapAliasesBacking(t *testing.T) {
 	}
 	if got := m.Len(); got != 2 {
 		t.Errorf("Len() = %d after backing insert, want 2", got)
+	}
+}
+
+// TestMapNilInput pins the nil round-trip: a nil backing map yields a nil Map,
+// while an empty but non-nil one yields a usable zero-length view. The
+// distinction is the point — it lets "no map" survive the wrapping instead of
+// collapsing into "empty map".
+func TestMapNilInput(t *testing.T) {
+	tests := []struct {
+		name    string
+		m       views.Map[string, string]
+		wantNil bool
+		wantLen int
+	}{
+		{name: "NewMap nil", m: views.NewMap(map[string]string(nil)), wantNil: true},
+		{name: "NewMap nil named type", m: views.NewMap(namedLabels(nil)), wantNil: true},
+		{name: "NewMap empty", m: views.NewMap(map[string]string{}), wantLen: 0},
+		{name: "NewMap empty named type", m: views.NewMap(namedLabels{}), wantLen: 0},
+		{name: "NewMap non-empty", m: views.NewMap(map[string]string{"a": "1"}), wantLen: 1},
+		{name: "NewMapVals nil", m: views.NewMapVals(map[string]int(nil), strconv.Itoa), wantNil: true},
+		{name: "NewMapVals nil named type", m: views.NewMapVals(namedAges(nil), strconv.Itoa), wantNil: true},
+		{name: "NewMapVals empty", m: views.NewMapVals(map[string]int{}, strconv.Itoa), wantLen: 0},
+		{name: "NewMapVals non-empty", m: views.NewMapVals(map[string]int{"a": 1}, strconv.Itoa), wantLen: 1},
+		{name: "NewMapKeyValues nil", m: views.NewMapKeyValues(map[int]string(nil), kvConv, kvUnconv), wantNil: true},
+		{name: "NewMapKeyValues nil named type", m: views.NewMapKeyValues(namedPairs(nil), kvConv, kvUnconv), wantNil: true},
+		{name: "NewMapKeyValues empty", m: views.NewMapKeyValues(map[int]string{}, kvConv, kvUnconv), wantLen: 0},
+		{name: "NewMapKeyValues non-empty", m: views.NewMapKeyValues(map[int]string{1: "one"}, kvConv, kvUnconv), wantLen: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.m == nil; got != tt.wantNil {
+				t.Fatalf("m == nil is %v, want %v", got, tt.wantNil)
+			}
+
+			// A nil view is a nil interface, so there is nothing further to
+			// check: every method call on it panics. That is the cost of the
+			// round-trip — callers must nil-check rather than treat the result
+			// as an empty collection.
+			if tt.wantNil {
+				return
+			}
+
+			// A non-nil view must be usable even when it holds nothing.
+			if got := tt.m.Len(); got != tt.wantLen {
+				t.Errorf("Len() = %d, want %d", got, tt.wantLen)
+			}
+			if got := len(slices.Collect(tt.m.Keys())); got != tt.wantLen {
+				t.Errorf("Keys() yielded %d keys, want %d", got, tt.wantLen)
+			}
+			if _, ok := tt.m.Get("no-such-key"); ok {
+				t.Error("Get on an absent key reported true")
+			}
+		})
 	}
 }

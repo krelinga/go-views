@@ -17,10 +17,18 @@ type Map[K, V any] interface {
 //
 // M may be map[K]V or any type whose underlying type is map[K]V.
 //
+// A nil m yields a nil [Map], so nil-ness round-trips rather than collapsing
+// into an empty view; an empty but non-nil m yields a non-nil view of length
+// zero. A nil view is a nil interface, so callers must nil-check the result
+// before calling methods on it.
+//
 // The view aliases m rather than copying it, so it prevents modification
 // through the view only; callers that retain m can still change the entries
 // the view exposes.
 func NewMap[M ~map[K]V, K comparable, V any](m M) Map[K, V] {
+	if m == nil {
+		return nil
+	}
 	return mapView[K, V]{m: m}
 }
 
@@ -55,10 +63,18 @@ func (v mapView[K, V]) All() iter.Seq2[K, V] {
 //
 // M may be map[K]F or any type whose underlying type is map[K]F.
 //
+// A nil m yields a nil [Map], so nil-ness round-trips rather than collapsing
+// into an empty view; an empty but non-nil m yields a non-nil view of length
+// zero. A nil view is a nil interface, so callers must nil-check the result
+// before calling methods on it.
+//
 // conv is applied lazily, once per value read, so a value read twice is
 // converted twice and entries that are never read are never converted. Like
 // [NewMap], the view aliases m.
 func NewMapVals[M ~map[K]F, K comparable, F, V any](m M, conv func(F) V) Map[K, V] {
+	if m == nil {
+		return nil
+	}
 	return mapValsView[K, F, V]{m: m, conv: conv}
 }
 
@@ -112,6 +128,11 @@ func (v mapValsView[K, F, V]) All() iter.Seq2[K, V] {
 //
 // M may be map[FK]FV or any type whose underlying type is map[FK]FV.
 //
+// A nil m yields a nil [Map], so nil-ness round-trips rather than collapsing
+// into an empty view; an empty but non-nil m yields a non-nil view of length
+// zero. A nil view is a nil interface, so callers must nil-check the result
+// before calling methods on it.
+//
 // unconv recovers a backing key from an exposed one, which is what makes
 // [Map.Get] possible: Get has only the converted key to work with and must
 // map it back to look anything up. It reports false for an exposed key with no
@@ -131,6 +152,9 @@ func NewMapKeyValues[M ~map[FK]FV, FK comparable, K, FV, V any](
 	conv func(FK, FV) (K, V),
 	unconv func(K) (FK, bool),
 ) Map[K, V] {
+	if m == nil {
+		return nil
+	}
 	return mapKeyValuesView[FK, FV, K, V]{m: m, conv: conv, unconv: unconv}
 }
 
