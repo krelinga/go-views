@@ -4,12 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`github.com/krelinga/go-views` is a single-package Go library (package `views`, all files at the repo root) providing read-only views over Go collections. It has no dependencies beyond the standard library, and no `main` package — nothing to run, only tests.
+`github.com/krelinga/go-views` provides read-only views over Go collections. It has no dependencies beyond the standard library, and no `main` package — nothing to run, only tests.
+
+The repo holds **two modules**, one per major version, following Go's major-subdirectory strategy:
+
+- `github.com/krelinga/go-views` — v1, package `views`, files at the repo root. Described below.
+- `github.com/krelinga/go-views/v2` — v2, package `views`, files in `v2/` with its own `go.mod`. An in-progress redesign; the sections below describe v1 unless stated otherwise.
 
 ## Commands
 
 ```bash
-go test ./...                          # run all tests
+go test ./...                          # v1 only — does NOT reach v2/ (separate module)
+cd v2 && go test ./...                 # v2
 go test -run TestDictOfMap ./...       # run a single test
 go test -run 'TestDictOfMap/nil_map'   # run a single subtest (spaces in name -> underscores)
 go vet ./...
@@ -39,4 +45,6 @@ Tests live in package `views_test` and import the package by its full module pat
 
 ## Releasing
 
-Pushing a `v*` tag triggers `.github/workflows/tag.yaml`, which runs `go test ./...`, creates a GitHub release with generated notes, and warms the module proxy via `go list -m`.
+Pushing a `v*` tag triggers `.github/workflows/tag.yaml`. It derives the target module from the tag's major version (`v0`/`v1` → repo root, `vN` → the `vN/` subdirectory), verifies that directory's `go.mod` declares the matching module path, tests every module in the repo, creates a GitHub release with generated notes, and warms the module proxy via `go list -m` from the released module's directory.
+
+Tags carry no subdirectory prefix — v2 releases are tagged plain `v2.0.0`, not `v2/v2.0.0`, because the major-version suffix is excluded from a module's subdirectory name.
