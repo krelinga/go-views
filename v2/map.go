@@ -5,12 +5,22 @@ import (
 	"maps"
 )
 
+// Map is a read-only view of a map.
+//
+// Only this package can implement Map: the unexported method seals it. That is
+// what turns the constructors' promises — the nil round-trip, Get agreeing with
+// Keys and All, lazy conversion — into properties of the type rather than
+// claims in a doc comment. Do not drop the method to let an outside type
+// implement Map; add a function-backed constructor here instead, so this
+// package still owns the wrapper and can keep those promises.
 type Map[K, V any] interface {
 	Len() int
 	Get(key K) (V, bool)
 	Keys() iter.Seq[K]
 	Values() iter.Seq[V]
 	All() iter.Seq2[K, V]
+
+	sealedMap()
 }
 
 // NewMap returns a read-only [Map] view of m.
@@ -36,6 +46,8 @@ func NewMap[M ~map[K]V, K comparable, V any](m M) Map[K, V] {
 type mapView[K comparable, V any] struct {
 	m map[K]V
 }
+
+func (mapView[K, V]) sealedMap() {}
 
 func (v mapView[K, V]) Len() int {
 	return len(v.m)
@@ -84,6 +96,8 @@ type mapValsView[K comparable, F, V any] struct {
 	m    map[K]F
 	conv func(F) V
 }
+
+func (mapValsView[K, F, V]) sealedMap() {}
 
 func (v mapValsView[K, F, V]) Len() int {
 	return len(v.m)
@@ -166,6 +180,8 @@ type mapKeyValuesView[FK comparable, FV any, K, V any] struct {
 	conv   func(FK, FV) (K, V)
 	unconv func(K) (FK, bool)
 }
+
+func (mapKeyValuesView[FK, FV, K, V]) sealedMap() {}
 
 func (v mapKeyValuesView[FK, FV, K, V]) Len() int {
 	return len(v.m)

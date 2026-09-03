@@ -5,11 +5,21 @@ import (
 	"slices"
 )
 
+// Slice is a read-only view of a slice.
+//
+// Only this package can implement Slice: the unexported method seals it. That
+// is what turns the constructors' promises — the nil round-trip, index-ordered
+// iteration, At's panic semantics — into properties of the type rather than
+// claims in a doc comment. Do not drop the method to let an outside type
+// implement Slice; add a function-backed constructor here instead, so this
+// package still owns the wrapper and can keep those promises.
 type Slice[T any] interface {
 	Len() int
 	At(index int) T
 	All() iter.Seq2[int, T]
 	Values() iter.Seq[T]
+
+	sealedSlice()
 }
 
 // NewSlice returns a read-only [Slice] view of s.
@@ -35,6 +45,8 @@ func NewSlice[S ~[]T, T any](s S) Slice[T] {
 type sliceView[T any] struct {
 	s []T
 }
+
+func (sliceView[T]) sealedSlice() {}
 
 func (v sliceView[T]) Len() int {
 	return len(v.s)
@@ -79,6 +91,8 @@ type sliceValsView[F, T any] struct {
 	s    []F
 	conv func(F) T
 }
+
+func (sliceValsView[F, T]) sealedSlice() {}
 
 func (v sliceValsView[F, T]) Len() int {
 	return len(v.s)
